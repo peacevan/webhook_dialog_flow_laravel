@@ -9,32 +9,30 @@ class DialogflowController extends Controller
 {
     public function handle(Request $request)
     {
-        $result=$this->getMenuProduto('bebidas');
 
-       try{
+
+        try{
         $data = $request->json()->all();
         $intent = $data['queryResult']['intent']['displayName'];
         $parameters = $data['queryResult']['parameters'];
 
         if ($intent === 'produto.custo') {
             $produto = $parameters['produto'];
-            $sabor = $parameters['produtoOpcoes'];
+            $sabor  = $parameters['sabores'];
             $precoPizza = $this->getPrecoDoProduto($produto, $sabor);
             $response = [
                 'fulfillmentText' =>$precoPizza,
             ];
             return response()->json($response);
         }
-
          if ($intent=='produto.opcoes') {
-
             $data = $request->json()->all();
             $intent = $data['queryResult']['intent']['displayName'];
             $parameters = $data['queryResult']['parameters'];
             $produto = $parameters['produto'];
             $opcao = $parameters['produtoOpcoes'];
-            if ($produto &&  $opcao){
 
+            if ($produto &&  $opcao){
                $result= $this->findProdutoSabor($produto, $opcao); //realizar busca no banco de dados
                $result =" Sim Temos, O preço da $produto  $opcao é  $result";
                return response()->json(['fulfillmentText'=>$result]);
@@ -43,54 +41,24 @@ class DialogflowController extends Controller
             return response()->json(['fulfillmentText'=>$result]);
          }
 
-        // Lógica para outras intenções, se necessário
-        return response()->json(['fulfillmentText' => 'Intent não reconhecida.']);
+
+         if ($intent=='cardapio.almoco') {
+            $imagemcardapio['imageUri']= "https://www.graficaprintcenter.com.br/uploads/produtos/cardapio-simples-plastificado-a5-15x21cm-papel-plastificado-compactado-corte-reto-4x0-colorido-frent-1637961459203315144861a14ef345891.jpg";
+            $imagemcardapio['accessibilityText']="Cardapio refeição";
+            return response()->json(['fulfillmentText'=>json_encode($imagemcardapio)]);
+         }
+
+         return response()->json(['fulfillmentText' => 'Intent não reconhecida.']);
     }catch(Exception $e){
-        die($e->getMessage());
+      die($e->getMessage());
       return response()->json(['error'=>$e->getMessage()]);
      }
     }
-    // Função simulada para obter o preço do produto buscar do banco.
     protected function getPrecoDoProduto($produto, $sabor=null)
     {
-        //vindo do banco
-        $precosProdutos = [
-            'pizza' => [
-                'calabresa' => 'R$ 20.00',
-                'mussarela' => 'R$ 25.00',
-                'margherita' => 'R$ 22.00',
-                'frango_com_catupiry' => 'R$ 28.00',
-                'quatro_queijos' => 'R$ 26.00',
-                'portuguesa' => 'R$ 24.00',
-                'pepperoni' => 'R$ 27.00',
-                'atum' => 'R$ 23.00',
-                'bacon' => 'R$ 29.00',
-                'vegetariana' => 'R$ 26.00',
-                'palmito' => 'R$ 25.00',
-                'camarao' => 'R$ 32.00',
-                'funghi' => 'R$ 28.00',
-                'rucula_com_tomate_seco' => 'R$ 30.00',
-                'chocolate' => 'R$ 18.00',
-                'banana_com_canela' => 'R$ 17.00',
-                'romeu_e_julieta' => 'R$ 19.00',
-                'bauru' => 'R$ 21.00',
-                'escarola' => 'R$ 22.00',
-                'brocolis_com_bacon' => 'R$ 31.00',
-            ],
-            'almoço' => [
-                'executivo' => 'R$ 50.00',
-                'comercial' => 'R$ 50.00',
-                'vegetariano' => 'R$ 45.00',
-                'fitness' => 'R$ 55.00',
-                'infantil' => 'R$ 35.00',
-                'picanha' => 'R$ 60.00',
-                'salada_ceasar' => 'R$ 48.00',
-                'massa_carbonara' => 'R$ 52.00',
-                'salmão_grelhado' => 'R$ 58.00',
-                'frango_parmesão' => 'R$ 54.00',
-            ],
-        ];
-        //se não informou o sabor retorna o preço de todo os produto informado
+        $precosProdutos= json_decode($this->getProdutoJson(),TRUE);
+
+
         if (!$sabor) {
             $responseText = "Os preços  são:\n";
             $i=0;
@@ -105,74 +73,30 @@ class DialogflowController extends Controller
     }
     //buscar do banco de dados
     function buscaProduto($produto=null){
-         //vindo do banco
-         $precosProdutos = [
-            'pizza' => [
-                'calabresa' => 'R$ 20.00',
-                'mussarela' => 'R$ 25.00',
-                'margherita' => 'R$ 22.00',
-                'frango_com_catupiry' => 'R$ 28.00',
-                'quatro_queijos' => 'R$ 26.00',
-                'portuguesa' => 'R$ 24.00',
-                'pepperoni' => 'R$ 27.00',
-                'atum' => 'R$ 23.00',
-                'bacon' => 'R$ 29.00',
-                'vegetariana' => 'R$ 26.00',
-                'palmito' => 'R$ 25.00',
-                'camarao' => 'R$ 32.00',
-                'funghi' => 'R$ 28.00',
-                'rucula_com_tomate_seco' => 'R$ 30.00',
-                'chocolate' => 'R$ 18.00',
-                'banana_com_canela' => 'R$ 17.00',
-                'romeu_e_julieta' => 'R$ 19.00',
-                'bauru' => 'R$ 21.00',
-                'escarola' => 'R$ 22.00',
-                'brocolis_com_bacon' => 'R$ 31.00',
-            ],
-            'almoço' => [
-                'executivo' => 'R$ 50.00',
-                'comercial' => 'R$ 50.00',
-                'vegetariano' => 'R$ 45.00',
-                'fitness' => 'R$ 55.00',
-                'infantil' => 'R$ 35.00',
-                'picanha' => 'R$ 60.00',
-                'salada_ceasar' => 'R$ 48.00',
-                'massa_carbonara' => 'R$ 52.00',
-                'salmão_grelhado' => 'R$ 58.00',
-                'frango_parmesão' => 'R$ 54.00',
-            ],
-            'bebidas' => [
-                'água_mineral' => 'R$ 3.00',
-                'refrigerante_lata' => 'R$ 5.00',
-                'refrigerante_2l' => 'R$ 10.00',
-                'suco_natural' => 'R$ 7.00',
-                'suco_caixa' => 'R$ 6.00',
-                'café' => 'R$ 4.00',
-                'chá' => 'R$ 4.50',
-                'cerveja' => 'R$ 8.00',
-                'vinho_tinto' => 'R$ 20.00',
-                'coquetel_sem_álcool' => 'R$ 6.50',
-            ],
-        ];
+        $precosProdutos= json_decode($this->getProdutoJson(),true);
 
         return $precosProdutos[$produto]??$precosProdutos;
-
-
     }
+    function getMenuProduto($produtoP){
 
-    function getMenuProduto($produto){
-           //se não informou o sabor retorna o preço de todo os produto informado
-       $listaopcoes=$this->buscaProduto($produto);
-       $responseText = "Menu   $produto :\n";
+       $listaopcoes=$this->buscaProduto($produtoP);
+
+       $responseText = "Menu   $produtoP :\n";
             $i=0;
             foreach ($listaopcoes as $produto => $preco) {
-                $i++;
+               $i++;
                 $responseText .= "\n     $produto  :  $preco \n";
             }
+
             return $responseText ?? null;
     }
     function findProdutoSabor($produto,$produtoOpcoes){
+
         $listaopcoes=$this->buscaProduto($produto);
+
         return  $listaopcoes[$produtoOpcoes];
     }
+    function getProdutoJson(){
+        return file_get_contents(storage_path('produtos.json'));
+      }
 }
